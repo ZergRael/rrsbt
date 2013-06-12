@@ -5,9 +5,7 @@ class TorrentBuilder
 	require 'open-uri'
 	require 'resolv'
 	require 'digest/sha1'
-	
-	@rdata
-	
+
 	def echoError optionErr=''
 		unless optionErr == ''
 			print "build_torrent.rb : option invalide -- '#{optionErr}'\n"
@@ -19,7 +17,7 @@ class TorrentBuilder
 		print "\t-t\tpreciser le tracker utilise (devrait etre automatiquement deduit) = #{@rdata.config['tracker']}\n"
 		print "Les options sont automatiquement sauvegardees pour un usage futur\n"
 	end
-	
+
 	$lastTt = 0
 	def writeProgress name, bytes, bytesTotal, fStart, totalBytes=false, totalBytesTotal=false, totalStart=false
 		tt = Time.now.to_f
@@ -27,14 +25,14 @@ class TorrentBuilder
 			return
 		end
 		$lastTt = tt
-	
+
 		percent = bytes.to_f/bytesTotal.to_f*100.0
 		eta = 0
 		if bytes != 0
 			elapsed = (tt - fStart)
 			eta = bytesTotal.to_f * elapsed / bytes.to_f - elapsed
 		end
-	
+
 		if totalBytes
 			percentTotal = totalBytes.to_f/totalBytesTotal.to_f*100.0
 			etaTotal = 0
@@ -42,14 +40,13 @@ class TorrentBuilder
 				elapsed = (tt - totalStart)
 				etaTotal = totalBytesTotal.to_f * elapsed / totalBytes.to_f - elapsed
 			end
-			
+
 			print "\r\e[0K\e[1A\e[0K#{name} : #{bytes} / #{bytesTotal} (#{"%.2f" % percent}%) ETA : #{"%.2f" % eta}s\nTotal : #{totalBytes} / #{totalBytesTotal} (#{"%.2f" % percentTotal}%) ETA : #{"%.2f" % etaTotal}s"
 		else
 			print "\r\e[0K#{name} : #{bytes} / #{bytesTotal} (#{"%.2f" % percent}%) ETA : #{"%.2f" % eta}s"
 		end
 	end
-	
-	
+
 	def goDeeper path, deep=[]
 		#p "Going deeper #{path} ! #{deep}"
 		files = []
@@ -57,7 +54,7 @@ class TorrentBuilder
 			if f == '.' || f == '..'
 				next
 			end
-	
+
 			if File::file? (path + f)
 				deepPath = Array.new(deep)
 				file = {
@@ -72,10 +69,10 @@ class TorrentBuilder
 		end
 		return files
 	end
-	
+
 	def addTorrent path, pieceSize, tracker="", output = ""
 		tt = Time.now.to_f
-	
+
 		if tracker == ""
 			my_ip = open("http://checkip.dyndns.org/") { |f| /([0-9]{1,3}\.){3}[0-9]{1,3}/.match(f.read)[0] }
 			unless my_ip
@@ -89,17 +86,17 @@ class TorrentBuilder
 			end
 			tracker = 'http://' + my_hostname + ':' + @rdata.config['port'].to_s + '/announce'
 		end
-	
+
 		p "Starting analysis : '#{path}' tracked by '#{tracker}'."
-	
+
 		isDir = FileTest::directory? path
 		isFile = FileTest::file? path
-	
+
 		unless isDir || isFile
 			echoError path
 			return
 		end
-	
+
 		filePath, fileName = File.split(path)
 		torrent = {
 			'announce' => tracker,
@@ -107,9 +104,9 @@ class TorrentBuilder
 			'created by' => "RRSBT Torrent rebuilder",
 			'info' => {}
 		}
-	
+
 		totalLength = 0
-	
+
 		# FILE
 		if isFile
 			torrent['info'] = {
@@ -119,9 +116,9 @@ class TorrentBuilder
 				'pieces' => "",
 				'private' => 1
 			}
-	
+
 			p "Torrent analysis ended : 1 file to hash."
-	
+
 			p "Starting hash with #{pieceSize}B pieces"
 			print "\n"
 			hash = ""
@@ -129,15 +126,15 @@ class TorrentBuilder
 			progress = 0
 			totalLength = torrent['info']['length']
 			hashStart = Time.now.to_f
-	
+
 			file = File.new(path)
 			writeProgress(fileName, progress, totalLength, hashStart)
 			while true
 				piece += file.read(pieceSize)
-	
+
 				progress += (piece.length > totalLength ? totalLength : piece.length)
 				writeProgress(fileName, progress, totalLength, hashStart)
-	
+
 				if piece.length == pieceSize
 					hash += Digest::SHA1.digest(piece)
 					piece = ""
@@ -148,12 +145,12 @@ class TorrentBuilder
 			$lastTt = 0
 			writeProgress(fileName, progress, totalLength, hashStart)
 			print "\n"
-	
+
 			unless piece == ""
 				hash += Digest::SHA1.digest(piece)
 			end
 			torrent['info']['pieces'] = hash
-	
+
 		# DIRECTORY
 		else
 			unless path.end_with? '/'
@@ -165,17 +162,17 @@ class TorrentBuilder
 				'piece length' => pieceSize,
 				'pieces' => "",
 				'private' => 1
-			} 
+			}
 
 			torrent['info']['files'] = goDeeper(path)
-	
+
 			nFiles = 0
 			torrent['info']['files'].each do |f|
 				totalLength += f['length']
 				nFiles += 1
 			end
 			p "Torrent analysis ended : #{nFiles} file#{nFiles > 1 ? 's' : ''} to hash."
-	
+
 			p "Starting hash with #{pieceSize}B pieces"
 			print "\n"
 			hash = ""
@@ -183,11 +180,11 @@ class TorrentBuilder
 			fileProgress = 0
 			totalProgress = 0
 			totalHashStart = Time.now.to_f
-	
+
 			torrent['info']['files'].each do |f|
 				fileHashStart = Time.now.to_f
 				file = File.new(path + f['path'].join('/'))
-	
+
 				writeProgress(f['path'].join('/'), fileProgress, f['length'], fileHashStart, totalProgress, totalLength, totalHashStart)
 				while true
 					lengthBefore = piece.length
@@ -212,22 +209,22 @@ class TorrentBuilder
 				fileProgress = 0
 			end
 			print "\n"
-	
+
 			unless piece == ""
 				hash += Digest::SHA1.digest(piece)
 			end
 			torrent['info']['pieces'] = hash
 		end
-	
+
 		#p torrent
 		bEncoded = Bencode.encode(torrent)
 		#p bEncoded
-	
+
 		torrentFileName = File.basename(path, (isFile ? File.extname(path) : '')) + "-RRSBT.torrent"
 		torrentFile = File.open(File.split($0)[0] + '/torrents/' + torrentFileName, "w+")
 		torrentFile.write(bEncoded)
 		torrentFile.close()
-		
+
 		if output != ""
 		  unless output.end_with? '/'
 		    output += '/'
@@ -236,16 +233,16 @@ class TorrentBuilder
 		  torrentFileCopy.write(bEncoded)
 		  torrentFileCopy.close()
 		end
-	
+
 		tt2 = Time.now.to_f
-	
+
 		units = ["B", "KB", "MB", "GB", "TB"]
 		unit = 0
 		while totalLength >= 1024
 			totalLength /= 1024.0
 			unit += 1
 		end
-	
+
 		speedUnit = unit
 		speed = (totalLength / (tt2 - tt)).round(3)
 		if speed < 1 && speedUnit > 0
@@ -253,15 +250,14 @@ class TorrentBuilder
 			speedUnit -= 1
 		end
 		p "Hashing ended : #{totalLength.round(3)}#{units[unit]} in #{(tt2 - tt).round(2)}s = #{speed}#{units[speedUnit]}/s"
-		
+
 		info_hash = Digest::SHA1.hexdigest(Bencode.encode(torrent['info']))
 		@rdata.setTorrentInfoData(torrentFileName, info_hash, fileName, tracker)
 		p "Expected info_hash = #{info_hash}"
 	end
-	
+
 	def initialize
-		@rdata = RData.new()
-		@rdata.load
+		@rdata = RData.new
 		if ARGV.length >= 1
 			availableOptions = {'p' => 1, 't' => 1, 'o' => 1}
 			options = {}
@@ -286,7 +282,7 @@ class TorrentBuilder
 					end
 				end
 			end
-		
+
 			pieceSize = @rdata.config['pieceSize']
 			if options['p']
 				unless options['p'].is_a? String
@@ -301,12 +297,12 @@ class TorrentBuilder
 					Process.exit
 				end
 			end
-		
+
 			tracker = @rdata.config['tracker']
 			if options['t']
 				tracker = options['t']
 			end
-			
+
 			output = @rdata.config['torrentOutput']
 			if options['o']
 				output = options['o']
@@ -315,7 +311,7 @@ class TorrentBuilder
 					Process.exit
 				end
 			end
-		
+
 			path = options['path']
 			@rdata.config['pieceSize'] = pieceSize
 			@rdata.config['tracker'] = tracker

@@ -2,6 +2,7 @@ class RData
 	require 'yaml'
 	require 'digest/sha1'
 	attr_accessor :config, :torrents, :info_hashes
+
 	def initialize
 		configFile = "config.yml"
 		@cPath = File.split($0)[0] + '/data/' + configFile
@@ -9,6 +10,8 @@ class RData
 		@tPath = File.split($0)[0] + '/data/' + torrentFile
 		infoHashesFile = "info_hashes.yml"
 		@iPath = File.split($0)[0] + '/data/' + infoHashesFile
+
+		self.load
 	end
 
 	def load

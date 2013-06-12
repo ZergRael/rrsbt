@@ -16,7 +16,7 @@ class Torrent
 
 	def refreshData
 		@nComplete, @nIncomplete = 0, 0
-		clients.each do |k, c|
+		@clients.each do |k, c|
 			@nIncomplete += (c.isLeech ? 1 : 0)
 			@nComplete += (c.isLeech ? 0 : 1)
 		end
@@ -32,9 +32,9 @@ class Torrent
 			@clients.delete(peer_id)
 		end
 	end
-	
+
 	def flushOldClients(timeStamp, maxInterval)
-		clients.each do |k, c|
+		@clients.each do |k, c|
 			if c.lastUpdate + maxInterval < timeStamp
 				self.removeClient k
 			end
@@ -45,7 +45,7 @@ class Torrent
 		if compact
 			clientsStr = ""
 			i = 0
-			clients.each do |k, c|
+			@clients.each do |k, c|
 				if i >= numwant.to_i
 					break
 				end
@@ -55,7 +55,7 @@ class Torrent
 			return clientsStr
 		else
 			clientsArr = []
-			clients.each do |k, c|
+			@clients.each do |k, c|
 				if clientsArr.length >= numwant.to_i
 					break
 				end

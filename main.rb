@@ -5,7 +5,7 @@ require_relative "client"
 require_relative "rdata"
 require 'socket'
 require 'logger'
-require 'cgi'
+#require 'cgi'
 
 
 tt = Time.now
@@ -33,11 +33,12 @@ begin
 		connection = a.accept
 		str = connection.recv(1024)
 
+		log.debug "Got HTTP_GET"
 		#log.debug "Pure HTTP data = #{str}"
 		tt = Time.now
-		log.debug "Got HTTP GET : #{str}"
+		#log.debug "Got HTTP GET : #{str}"
 		request, data = Httpcode.decode(str)
-		log.debug "HTTP_GET_Decoded_data: #{request} = #{data}"
+		log.debug "HTTP_GET Decoded request: #{request} | data: #{data}"
 
 		httpData = ""
 		case request
@@ -129,7 +130,7 @@ begin
 
 			log.debug "Response: #{response}"
 			returnData = Bencode.encode(response)
-			log.debug "Encoded response: #{returnData}"
+			#log.debug "Encoded response: #{returnData}"
 			httpData = Httpcode.encode(returnData)
 
 		# TORRENTS
@@ -169,7 +170,7 @@ begin
 			end
 
 			returnData += "</table><br /><br />Generated in #{(Time.now.to_f - tt_t).round(3)}s"
-			log.debug "Encoded response: #{returnData}"
+			#log.debug "Encoded response: #{returnData}"
 			httpData = Httpcode.webpage("Torrents download page", returnData)
 
 		# DOWNLOAD TORRENT FILE

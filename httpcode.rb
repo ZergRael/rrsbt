@@ -4,7 +4,7 @@ class Httpcode
 		type = "error"
 		hash = {}
 
-		request = str.match(/GET \/(\w+)(\?.*)? HTTP/)
+		request = str.match(/GET \/([\w\.]+)(\?.*)? HTTP/)
 		if request
 			type = request[1]
 			unless request[2]

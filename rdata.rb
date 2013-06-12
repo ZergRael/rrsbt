@@ -22,10 +22,11 @@ class RData
 			File.open(@tPath, 'w+') {|f| f.write(YAML::dump({})) }
 		end
 		@torrents = YAML::load_file(@tPath)
-		
+
 		unless File.exists? @iPath
 			File.open(@iPath, 'w+') {|f| f.write(YAML::dump({})) }
 		end
+		@info_hashes = YAML::load_file(@iPath)
 	end
 
 	def load_config_defaults
@@ -44,20 +45,20 @@ class RData
 			end
 		end
 	end
-	
+
 	def getTorrentInfoData fileName
-		info_hashes = YAML::load_file(@iPath)
+		#@info_hashes = YAML::load_file(@iPath)
 		if info_hashes[fileName]
 			return info_hashes[fileName]['info_hash'], info_hashes[fileName]['name'], info_hashes[fileName]['tracker']
 		else
 			return nil
 		end
 	end
-	
+
 	def setTorrentInfoData(fileName, info_hash, name, tracker)
-		info_hashes = YAML::load_file(@iPath)
-		info_hashes[fileName] = {'info_hash' => info_hash, 'name' => name, 'tracker' => tracker}
-		File.open(@iPath, 'w+') {|f| f.write(YAML::dump(info_hashes)) }
+		#@info_hashes = YAML::load_file(@iPath)
+		@info_hashes[fileName] = {'info_hash' => info_hash, 'name' => name, 'tracker' => tracker}
+		File.open(@iPath, 'w+') {|f| f.write(YAML::dump(@info_hashes)) }
 	end
 
 	def save
